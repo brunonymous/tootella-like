@@ -1,0 +1,15 @@
+[% INCLUDE head.html %]<div id="sites">
+<p class="colonnes"><a href="[% link1column %]" hreflang="fr"><img src="/gfx/1colonne.png" alt="Ic&ocirc;ne 1 colonne" title="Une colonnes"/></a></p>
+<dl class="left">
+[% FOREACH  website = leftWebsites %]
+<dt><a href="[% website.url %]" hreflang="[% website.lang %]">[% website.titre %]</a></dt>
+<dd><ul>[% FOREACH  item = website.items %]<li><a href="[% website.url %]" hreflang="[% item.lang %]">[% item.title %]</a></li>[% END %]</ul></dd>[% END %]
+</dl>
+<dl class="right">
+[% FOREACH  website = rightWebsites %]
+<dt><a href="[% website.url %]" hreflang="[% website.lang %]">[% website.titre %]</a></dt>
+<dd><ul>[% FOREACH  item = website.items %]<li><a href="[% website.url %]" hreflang="[% item.lang %]">[% item.title %]</a></li>[% END %]</ul></dd>[% END %]
+</dl>
+<hr>
+</div>
+[% INCLUDE foot.html %]

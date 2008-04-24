@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<title>Les infos du libre : [% titleOfPage %]</title>	
+<link rel="icon" href="/favicon.ico" type="image/ico" />
+<meta name="DC.Date.Created" scheme="W3CDTF" content="2005-05-04" />
+<meta name="DC.Date.Modified" scheme="W3CDTF" content="[% date %]" />
+<meta name="MSSmartTagsPreventParsing" content="TRUE" />
+<meta name="robots" content="all" /> 
+<meta name="author" content="Sylvain GIL, Bruno ETHVIGNOT" />
+<link rel="stylesheet" type="text/css" href="/css/style.css" />
+</head>
+<body>
+<div id="logo"><h1>Les infos du libre</h1></div>
+<p id="sponsor">H&eacute;berg&eacute; par <a href="http://www.tlk.fr/" title="Jeux sharewares pour PC" hreflang="fr">TLK Games</a></p>
+<ul id="menu"> [% FOREACH  menu = listemenu %] <li>+ <a href="[% menu.url %]" hreflang="fr">[% menu.titre %]</a></li> [% END %]</ul>

@@ -1,0 +1,122 @@
+body {
+	background-image: url(/gfx/background-body.png);
+	background-repeat: repeat;
+	background-color: #6c7cb7;
+	font-size: 13px;
+	color: #fff;
+	text-align: center;
+	width: 100%;
+	margin: 0 0 0 0;
+}
+hr {
+	clear: both;
+	visibility: hidden;
+	height: 1px;
+	border: 0;
+}
+img {
+	border: 0;
+}
+a {
+	color: white;
+	text-decoration: none;
+}
+a:visited {
+	color: #ccc;
+}
+a:hover {
+    text-decoration: underline;
+}
+#logo {
+	background-image: url(/gfx/tootella.png);
+	background-position: top center;
+	background-repeat: no-repeat;
+	width: 100%;
+	height: 106px;
+	margin-bottom: 18px;
+}
+#logo h1 {
+	visibility: hidden;
+}
+#sponsor {
+	margin: 0 0 0 2%;
+	text-align: left;
+	font-size: x-small;
+}
+
+#menu {
+	padding: 0;
+	margin: 0 2% 8px 2%;
+	background: #5c5a7b;
+	font-family: sans-serif;
+	font-weight: bold;
+	font-size: 10pt;
+	border: 2px solid #fff;
+}
+#menu li {
+	list-style: none;
+	display: inline;
+}
+
+#sites {
+	margin: 0 2% 8px 2%;
+	text-align: left;
+	border: 2px solid #fff;
+	background-image: url(/gfx/background-content.png);
+	background-repeat: repeat;
+	background-color: #5c5a7b;
+	padding: 0 0 16px 0;
+}
+
+#sites dl.left {
+	width: 50%;
+	float: left;
+	clear: left;
+}
+#sites dl.right {
+	width: 50%;
+	float: left;
+	clear: right;
+}
+
+#sites dt {
+	margin: 6px 2% 0 2%;
+	background-image: url(/gfx/tootella-sphere.png);
+	background-repeat: no-repeat;
+	border-bottom: 1px solid #000;
+	padding-left: 20px;
+}
+#sites dt a {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 14pt;
+	font-weight: bold;
+	color: black;
+	text-decoration: none;
+}
+#sites .colonnes {
+	margin: 0 2% 0 2%;
+	padding: 8px 0 0 0;
+	text-align: center;
+}
+#sites dd ul {
+	padding-left: 4px;
+}
+#sites dd li {
+	list-style-image: url(/gfx/bullet.png);
+}
+#sites dd li a {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 13px;
+}
+#sites dd li a visited {
+	color: #aaa;
+}
+
+#pied  {
+	padding: 0;
+}
+#pied li {
+	font-size: x-small;
+	list-style: none;
+	display: inline;
+}
