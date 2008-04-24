@@ -1,0 +1,8 @@
+[% INCLUDE head.html %]<div id="sites">
+<p class="colonnes"><a href="[% link2columns %]" hreflang="fr"><img src="/gfx/2colonnes.png" alt="Ic&ocirc;ne 2 colonnes" title="Deux colonnes"/></a></p>
+<dl>
+[% FOREACH  website = listOfWebsites %]
+<dt><a href="[% website.url %]" hreflang="[% website.lang %]">[% website.titre %]</a></dt>
+<dd><ul>[% FOREACH  item = website.items %]<li><a href="[% item.url %]" hreflang="[% website.lang %]">[% item.title %]</a></li>[% END %]</ul></dd>[% END %]
+</dl>
+</div>[% INCLUDE foot.html %]
