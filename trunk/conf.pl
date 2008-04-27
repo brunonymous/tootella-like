@@ -82,9 +82,9 @@
                     rss   => 'http://lwn.net/headlines/newrss',
                     lang  => 'en'
                 },
-                {   titre => 'Linux Games',
-                    url   => 'http://www.linuxgames.com/',
-                    rss   => 'http://www.linuxgames.com/news/linuxgames.rss',
+                {   titre => 'The Linux Game Tome',
+                    url   => 'http://www.happypenguin.org/',
+                    rss   => 'http://happypenguin.org/html/news.rdf',
                     lang  => 'en'
                 },
                 {   titre => 'OSNews',
@@ -193,13 +193,6 @@
                     rss   => 'http://www.zope.org/news.rss',
                     lang  => 'en'
                 },
-
-                {   titre => 'Planet Jabber',
-                    url   => 'http://www.planetplanet.org/',
-                    rss   => 'http://planet.jabber.org/atom.xml',
-                    lang  => 'en'
-                },
-
                 {   titre => 'Dell Linux',
                     url   => 'http://linux.dell.com/',
                     rss   => 'http://linux.dell.com/blog/index.rss',
