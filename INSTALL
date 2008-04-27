@@ -1,0 +1,8 @@
+
+On Ubuntu 8.04
+sudo apt-get install apache2
+sudo cp -r public_html/gfx/ /var/www/
+sudo cp -r public_html/css/ /var/www/
+sudo cp public_html/htaccess /var/www/.htaccess
+sudo ./tootella-like.pl -v
+firefox http://127.0.0.1/pages/linux.html

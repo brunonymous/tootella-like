@@ -54,10 +54,10 @@ my $specificPageRequest;
 my %specificPagesRequested;
 my $warnError;
 my $userAgent;
-my $ra_conf;
+my $feedPages_ref;
 my $RSSDirname;
-my @a_listemenu;
-my @a_listemenuSplit;
+my @menusList;
+my @menusListSplit;
 my $rh_zite;
 my $startTime = time;
 my $pidfile;
@@ -65,13 +65,22 @@ my $http_ref;
 my $sysLog_ref;
 my $logFilename;
 
-init();
-run();
+eval {
+  init();
+  run();
+};
+if ($@) {
+    sayError($@);
+    sayError("(!) tootella-like.pl failed!");
+    die $@;
+}
 sayInfo( "(*) Time of execution: " . ( time - $startTime ) . " seconds" );
 
 ## @method void END()
 sub END {
-    Sys::Syslog::closelog();
+    if ( defined $sysLog_ref ) {
+      Sys::Syslog::closelog();
+    }
 }
 
 ## @method void run()
@@ -104,14 +113,14 @@ sub run {
     my $pageCounter = 0;
 
     # loop of each HTML page
-    foreach my $rh_page (@$ra_conf) {
+    foreach my $htmlPage_ref (@$feedPages_ref) {
         $pageCounter++;
         next
             if defined($specificPageRequest)
                 and !exists( $specificPagesRequested{$pageCounter} );
-        my $s_page = $rh_page->{page};
+        my $s_page = $htmlPage_ref->{page};
         sayInfo("run() generate page number: $s_page");
-        my $ra_sites       = $rh_page->{sites};
+        my $ra_sites       = $htmlPage_ref->{sites};
         my @a_sites        = ();               #one column : websites list
         my @a_leftWebsites = ();               #two columns : websites at left
         my @a_rightWebsites = ();    #tow columns : websites at right
@@ -119,22 +128,22 @@ sub run {
 
         # loop oh each website
         foreach my $rh_site (@$ra_sites) {
-            my $titleOfFeed = $rh_site->{titre};
+            my $titleOfFeed = $rh_site->{'titre'};
             sayDebug("run() process '$titleOfFeed' ");
             my $s_lang;
-            if ( exists( $rh_site->{lang} ) ) {
-                $s_lang = $rh_site->{lang};
+            if ( exists( $rh_site->{'lang'} ) ) {
+                $s_lang = $rh_site->{'lang'};
             }
             else {
                 $s_lang = 'fr';
                 sayError("run() no language code found");
             }
-            if ( !length( $rh_site->{rss} ) ) {
+            if ( !length( $rh_site->{'rss'} ) ) {
                 $h_website2error{$titleOfFeed} = 1;
                 next;
             }
             $rh_zite = {};
-            my $s_rss = $rh_site->{rss};
+            my $s_rss = $rh_site->{'rss'};
 
             # genere le nom du fichier local RSS
             my $s_fichierd = $titleOfFeed;
@@ -201,10 +210,10 @@ sub run {
         if ( !defined($generateTheAllPage) ) {
 
             # genere page "une colonne"
-            $templateVars_ref->{titleOfPage} = $rh_page->{'titre'};
-            $templateVars_ref->{listemenu}   = \@a_listemenu;
-            $templateVars_ref->{link2columns}
-                = $a_listemenuSplit[ $pageCounter - 1 ]->{'url'};
+            $templateVars_ref->{'titleOfPage'} = $htmlPage_ref->{'titre'};
+            $templateVars_ref->{'listemenu'}   = \@menusList;
+            $templateVars_ref->{'link2columns'}
+                = $menusListSplit[ $pageCounter - 1 ]->{'url'};
             $templateVars_ref->{listOfWebsites} = \@a_sites;
             sayError( $template->error() )
                 if (
@@ -216,9 +225,9 @@ sub run {
                 );
 
             # genere page "deux colonnes"
-            $templateVars_ref->{listemenu} = \@a_listemenuSplit;
+            $templateVars_ref->{listemenu} = \@menusListSplit;
             $templateVars_ref->{link1column}
-                = $a_listemenu[ $pageCounter - 1 ]->{'url'};
+                = $menusList[ $pageCounter - 1 ]->{'url'};
             $templateVars_ref->{leftWebsites}  = \@a_leftWebsites;
             $templateVars_ref->{rightWebsites} = \@a_rightWebsites;
             sayError( $template->error() )
@@ -244,10 +253,10 @@ sub run {
 
     # genere la page "tout.html"
     $templateVars_ref->{link2columns}
-        = $a_listemenuSplit[ scalar(@a_listemenuSplit) - 1 ]->{url};
+        = $menusListSplit[ scalar(@menusListSplit) - 1 ]->{url};
     $templateVars_ref->{titleOfPage}    = 'Tout';
     $templateVars_ref->{listOfWebsites} = \@a_Asites;
-    $templateVars_ref->{listemenu}      = \@a_listemenu;
+    $templateVars_ref->{listemenu}      = \@menusList;
     sayError( $template->error() )
         if (
         !$template->process(
@@ -257,9 +266,9 @@ sub run {
         );
 
     # genere la page "split/tout.html"
-    $templateVars_ref->{listemenu} = \@a_listemenuSplit;
+    $templateVars_ref->{listemenu} = \@menusListSplit;
     $templateVars_ref->{link1column}
-        = $a_listemenu[ scalar(@a_listemenu) - 1 ]->{url};
+        = $menusList[ scalar(@menusList) - 1 ]->{url};
     $templateVars_ref->{leftWebsites}  = \@a_AleftWebsites;
     $templateVars_ref->{rightWebsites} = \@a_ArightWebsites;
     sayError( $template->error() )
@@ -524,7 +533,7 @@ sub init {
     $RSSDirname = $documentRoot . $mainFolder . 'RSS';
     $userAgent  = new LWP::UserAgent();
     $userAgent->agent( $http_ref->{'agent'}, $http_ref->{'timeout'} ); 
-    $ra_conf = readConf( $Bin . '/conf.pl' );
+    $feedPages_ref = readConf( $Bin . '/conf.pl' );
     makeDirP($RSSDirname);
     makeDirP( $documentRoot . $mainFolder );
     makeDirP( $documentRoot . $splitFolder );
@@ -644,31 +653,31 @@ sub readConf {
 ## @method void readSections()
 # @brief read URLs and titles of each pages (build menu)
 sub readSections {
-    @a_listemenu = ();
-    foreach my $rh_page (@$ra_conf) {
+    @menusList = ();
+    foreach my $htmlPage_ref (@$feedPages_ref) {
         push(
-            @a_listemenu,
-            {   url   => '/' . $mainFolder . $rh_page->{page},
-                titre => $rh_page->{titre}
+            @menusList,
+            {   url   => '/' . $mainFolder . $htmlPage_ref->{page},
+                titre => $htmlPage_ref->{titre}
             }
         );
         push(
-            @a_listemenuSplit,
-            {   url   => '/' . $splitFolder . $rh_page->{page},
-                titre => $rh_page->{titre}
+            @menusListSplit,
+            {   url   => '/' . $splitFolder . $htmlPage_ref->{page},
+                titre => $htmlPage_ref->{titre}
             }
         );
     }
 
     #menus specials "tout.html" et "split/tout.html"
     push(
-        @a_listemenu,
+        @menusList,
         {   url   => '/' . $mainFolder . 'tout.html',
             titre => 'Tout'
         }
     );
     push(
-        @a_listemenuSplit,
+        @menusListSplit,
         {   url   => '/' . $splitFolder . 'tout.html',
             titre => 'Tout'
         }
