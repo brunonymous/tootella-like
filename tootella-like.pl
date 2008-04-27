@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # @author Bruno Ethvignot <bruno at tlk.biz>
 # @created 2005-05-03
-# @date 2008-05-24
+# @date 2008-05-27
 #
 # copyright (c) 2008 TLK Games all rights reserved
 # $Id: imap2signal-spam.pl 16 2008-04-12 09:38:08Z bruno.ethvignot $
@@ -11,7 +11,7 @@
 # the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
-# imap2signal-spam is distributed in the hope that it will be useful, but
+# tootella-like is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
@@ -21,6 +21,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA  02110-1301, USA.
 use strict;
+use Term::ANSIColor;
 use Config::General;
 use diagnostics;
 use Data::Dumper;
@@ -38,18 +39,19 @@ use XML::RSS;
 my $pid_handle;
 my $configFileName = 'tootella-like.conf';
 my $documentRoot   = './bubux/';
-my $s_folder       = 'pages/';
-my $s_foldersplit  = 'pages/split/';
+my $mainFolder     = 'pages/';
+my $splitFolder    = 'pages/split/';
 ## -l option: Use local RSS files is forced l
 my $useLocalRSSFiles;
-## -v option: verbose mode
+## verbose mode (option -v)
 my $isVerbose;
-## -t option: generates only the "tout.html" page
+## generates only the "tout.html" page (-t option)
 my $generateTheAllPage;
-my $s_pageNum;    #option -p : numeros des pages (generer 1 a 8)
-my %h_pageNum;    #option -p : liste des pages a taiter (-p 2, 3, 6)
-
-my $s_erreur_warn;
+## specific page(s) are requested (-p option)
+my $specificPageRequest;
+## list of specific pages to generate (option -p)
+my %specificPagesRequested;
+my $warnError;
 my $userAgent;
 my $ra_conf;
 my $RSSDirname;
@@ -60,34 +62,33 @@ my $startTime = time;
 my $pidfile;
 
 init();
-exit;
-runtime();
+run();
 sayMessage( "(*) Time of execution: " . ( time - $startTime ) . " seconds" );
 
 ## @method readArgs()
 # @brief Read args
 sub readArgs {
-    my $s_resultat =
-      Getopt::Long::GetOptions( 'p:s', \$s_pageNum, 'v', \$isVerbose, 'l',
-        \$useLocalRSSFiles, 't', \$generateTheAllPage );
-    if ( defined($s_pageNum) ) {
-        my @a_pageNum = split( ",", $s_pageNum );
-        $h_pageNum{$_} = 1 foreach (@a_pageNum);
-        sayMessage("(*) recreate only page number $s_pageNum");
+    my $s_resultat
+        = Getopt::Long::GetOptions( 'p:s', \$specificPageRequest, 'v',
+        \$isVerbose, 'l', \$useLocalRSSFiles, 't', \$generateTheAllPage );
+    if ( defined($specificPageRequest) ) {
+        my @a_pageNum = split( ",", $specificPageRequest );
+        $specificPagesRequested{$_} = 1 foreach (@a_pageNum);
+        sayMessage("(*) recreate only page number $specificPageRequest");
     }
 }
 
 ## @method void = initialize()
 # @brief read URLs and titles of each pages (build menu)
 sub initialize {
-    $RSSDirname  = $documentRoot . $s_folder . 'RSS';
-    $userAgent = new LWP::UserAgent();
+    $RSSDirname = $documentRoot . $mainFolder . 'RSS';
+    $userAgent  = new LWP::UserAgent();
     $userAgent->agent( 'Mozilla/5.0 (X11; U; Linux ppc; en-US; rv:1.7.6) '
-          . 'Gecko/20050328 Firefox/1.0.2' );
+            . 'Gecko/20050328 Firefox/1.0.2' );
     $ra_conf = readConf( $Bin . '/conf.pl' );
-    createDir($RSSDirname);
-    createDir( $documentRoot . $s_folder );
-    createDir( $documentRoot . $s_foldersplit );
+    makeDirP($RSSDirname);
+    makeDirP( $documentRoot . $mainFolder );
+    makeDirP( $documentRoot . $splitFolder );
     return 1;
 }
 
@@ -97,7 +98,7 @@ sub createDir {
     my ($dirName) = @_;
     return if -d $dirName;
     die "createDir($dirName) failed!" . "mkdir($dirName) return: $! "
-      if !mkdir($dirName);
+        if !mkdir($dirName);
 }
 
 ## @method hash = readConf($filename)
@@ -123,15 +124,13 @@ sub readSections {
     foreach my $rh_page (@$ra_conf) {
         push(
             @a_listemenu,
-            {
-                url   => '/' . $s_folder . $rh_page->{page},
+            {   url   => '/' . $mainFolder . $rh_page->{page},
                 titre => $rh_page->{titre}
             }
         );
         push(
             @a_listemenuSplit,
-            {
-                url   => '/' . $s_foldersplit . $rh_page->{page},
+            {   url   => '/' . $splitFolder . $rh_page->{page},
                 titre => $rh_page->{titre}
             }
         );
@@ -140,78 +139,72 @@ sub readSections {
     #menus specials "tout.html" et "split/tout.html"
     push(
         @a_listemenu,
-        {
-            url   => '/' . $s_folder . 'tout.html',
+        {   url   => '/' . $mainFolder . 'tout.html',
             titre => 'Tout'
         }
     );
     push(
         @a_listemenuSplit,
-        {
-            url   => '/' . $s_foldersplit . 'tout.html',
+        {   url   => '/' . $splitFolder . 'tout.html',
             titre => 'Tout'
         }
     );
 }
 
-## @method void runtime()
+## @method void run()
 # @brief main loop / create all HTML pages
-sub runtime {
+sub run {
 
-    # cree nos objets
-    my $o_rss    = new XML::RSS();
     my $template = Template->new(
-        {
-            EVAL_PERL    => 0,
+        {   EVAL_PERL    => 0,
             INCLUDE_PATH => $Bin . '/templates'
         }
     );
 
-    # le hachage "rh_vars" sont les variables pour le Template
-    my $rh_vars = {};
-    my ( $s_date, $s_datetime ) = getDate();
-
-    # la date est valable pour toutes les pages
-    $rh_vars->{date}     = $s_date;
-    $rh_vars->{datetime} = $s_datetime;
+    # hash used for template variables
+    my $templateVars_ref = {};
+    ( $templateVars_ref->{'date'}, $templateVars_ref->{'datetime'} )
+        = getDate();
 
     # hachage des sites deja traites
     my %h_website2items = ();    #evite de traiter 2 fois le meme fil
     my %h_website2error = ();
 
     #liste des sites pour les 2 pages "tout.html"
-    my @a_Asites         = ();                #1 column : websites list
-    my @a_AleftWebsites  = ();                #2 columns : websites at left
-    my @a_ArightWebsites = ();                #2 columns : websites at right
+    my @a_Asites         = ();                  #1 column : websites list
+    my @a_AleftWebsites  = ();                  #2 columns : websites at left
+    my @a_ArightWebsites = ();                  #2 columns : websites at right
     my $ra_AsplitSites   = \@a_AleftWebsites;
-    my %h_pageToutFlags  = ();                #evite d'avoir 2 fois le meme site
+    my %h_pageToutFlags = ();    #evite d'avoir 2 fois le meme site
+
+    # page counter from 1 to n (n = 9 currently)
+    my $pageCounter = 0;
 
     # loop of each HTML page
-    my $s_compteurPage = 0;    #page counter 1 to n (n = 8 currently)
     foreach my $rh_page (@$ra_conf) {
-        $s_compteurPage++;
-        if ( defined($s_pageNum) ) {
-            next if ( !exists( $h_pageNum{$s_compteurPage} ) );
-        }
+        $pageCounter++;
+        next
+            if defined($specificPageRequest)
+                and !exists( $specificPagesRequested{$pageCounter} );
         my $s_page = $rh_page->{page};
         sayMessage("(*) traite page : $s_page");
-        my $ra_sites        = $rh_page->{sites};
-        my @a_sites         = ();               #one column : websites list
-        my @a_leftWebsites  = ();               #two columns : websites at left
-        my @a_rightWebsites = ();               #tow columns : websites at right
-        my $ra_splitSites   = \@a_leftWebsites;
+        my $ra_sites       = $rh_page->{sites};
+        my @a_sites        = ();               #one column : websites list
+        my @a_leftWebsites = ();               #two columns : websites at left
+        my @a_rightWebsites = ();    #tow columns : websites at right
+        my $ra_splitSites = \@a_leftWebsites;
 
         # loop oh each website
         foreach my $rh_site (@$ra_sites) {
             my $s_titreSite = $rh_site->{titre};
-            sayMessage("- traite site $s_titreSite");
+            sayMessage("run() process '$s_titreSite' ");
             my $s_lang;
             if ( exists( $rh_site->{lang} ) ) {
                 $s_lang = $rh_site->{lang};
             }
             else {
                 $s_lang = 'fr';
-                sayError("pas de code langue");
+                sayError("run() no language code found");
             }
             if ( !length( $rh_site->{rss} ) ) {
                 $h_website2error{$s_titreSite} = 1;
@@ -227,35 +220,36 @@ sub runtime {
             $s_fichierd = lc($s_fichierd);
             $s_fichierd =~ s/\s+/-/g;
             $s_fichierd =~ s/\-+/-/g;
-            my $ra_items;
+            my $rssItems_ref;
             $s_fichierd = $RSSDirname . '/' . $s_fichierd . '.xml';
 
             # arguement "-l" force a utiliser fichiers locaux
             if ( exists( $h_website2items{$s_titreSite} ) ) {
-                sayMessage("- $s_titreSite deja traite");
-                $ra_items = $h_website2items{$s_titreSite};
+                sayMessage("run() $s_titreSite deja traite");
+                $rssItems_ref = $h_website2items{$s_titreSite};
             }
             elsif ( defined($useLocalRSSFiles) ) {
-                $ra_items = readRSSFromFile( $o_rss, $s_fichierd );
-                $h_website2items{$s_titreSite} = $ra_items;
+                $rssItems_ref = readRSSFromFile($s_fichierd);
+                $h_website2items{$s_titreSite} = $rssItems_ref;
             }
             else {
-                $ra_items = readRSSFromWeb(
-                    $o_rss,      $rh_site->{rss},
-                    $s_fichierd, $rh_site->{encoding}
-                );
-                $ra_items = readRSSFromFile( $o_rss, $s_fichierd )
-                  if ( !defined($ra_items) );
-                $h_website2items{$s_titreSite} = $ra_items;
+                $rssItems_ref
+                    = readRSSFromWeb( $rh_site->{'rss'}, $s_fichierd,
+                    $rh_site->{'encoding'} );
+                $rssItems_ref = readRSSFromFile($s_fichierd)
+                    if !defined($rssItems_ref);
+                $h_website2items{$s_titreSite} = $rssItems_ref;
             }
-            if ( !defined($ra_items) ) {    #erreur : pas de fil RSS
+
+            # no RSS feed found
+            if ( !defined($rssItems_ref) ) {
                 $h_website2error{$s_titreSite} = 1;
                 next;
             }
-            $rh_zite->{items} = $ra_items;
-            $rh_zite->{titre} = $s_titreSite;
-            $rh_zite->{url}   = $rh_site->{url};
-            $rh_zite->{lang}  = $s_lang;
+            $rh_zite->{'items'} = $rssItems_ref;
+            $rh_zite->{'titre'} = $s_titreSite;
+            $rh_zite->{'url'}   = $rh_site->{url};
+            $rh_zite->{'lang'}  = $s_lang;
             push( @a_sites,        $rh_zite );
             push( @$ra_splitSites, $rh_zite );
 
@@ -284,143 +278,163 @@ sub runtime {
         if ( !defined($generateTheAllPage) ) {
 
             # genere page "une colonne"
-            $rh_vars->{titleOfPage} = $rh_page->{titre};
-            $rh_vars->{listemenu}   = \@a_listemenu;
-            $rh_vars->{link2columns} =
-              $a_listemenuSplit[ $s_compteurPage - 1 ]->{url};
-            $rh_vars->{listOfWebsites} = \@a_sites;
+            $templateVars_ref->{titleOfPage} = $rh_page->{'titre'};
+            $templateVars_ref->{listemenu}   = \@a_listemenu;
+            $templateVars_ref->{link2columns}
+                = $a_listemenuSplit[ $pageCounter - 1 ]->{'url'};
+            $templateVars_ref->{listOfWebsites} = \@a_sites;
             sayError( $template->error() )
-              if (
+                if (
                 !$template->process(
-                    'modele.html', $rh_vars,
-                    $documentRoot . $s_folder . $s_page
+                    'modele.html',
+                    $templateVars_ref,
+                    $documentRoot . $mainFolder . $s_page
                 )
-              );
+                );
 
             # genere page "deux colonnes"
-            $rh_vars->{listemenu} = \@a_listemenuSplit;
-            $rh_vars->{link1column} =
-              $a_listemenu[ $s_compteurPage - 1 ]->{url};
-            $rh_vars->{leftWebsites}  = \@a_leftWebsites;
-            $rh_vars->{rightWebsites} = \@a_rightWebsites;
+            $templateVars_ref->{listemenu} = \@a_listemenuSplit;
+            $templateVars_ref->{link1column}
+                = $a_listemenu[ $pageCounter - 1 ]->{'url'};
+            $templateVars_ref->{leftWebsites}  = \@a_leftWebsites;
+            $templateVars_ref->{rightWebsites} = \@a_rightWebsites;
             sayError( $template->error() )
-              if (
+                if (
                 !$template->process(
-                    'modele-split.html', $rh_vars,
-                    $documentRoot . $s_foldersplit . $s_page
+                    'modele-split.html',
+                    $templateVars_ref,
+                    $documentRoot . $splitFolder . $s_page
                 )
-              );
+                );
         }
     }
 
     # affiche les sites non traites
-    sayMessage(
-        "--> " . scalar( keys %h_website2error ) . " site(s) non traite(s)" );
+    sayMessage( 'run() ' . scalar( keys %h_website2error ) . " site(s) )" );
     foreach ( keys %h_website2error ) {
         my $s_ligne = sprintf( "%-25s", "'$_'" );
-        sayError("--> $s_ligne : non traite");
+        sayError("run() $s_ligne : non traite");
     }
 
     # toutes les pages genrees ? Donc ne touche pas aux "tout.html"
-    return if ( defined($s_pageNum) );
+    return if defined($specificPageRequest);
 
     # genere la page "tout.html"
-    $rh_vars->{link2columns} =
-      $a_listemenuSplit[ scalar(@a_listemenuSplit) - 1 ]->{url};
-    $rh_vars->{titleOfPage}    = 'Tout';
-    $rh_vars->{listOfWebsites} = \@a_Asites;
-    $rh_vars->{listemenu}      = \@a_listemenu;
+    $templateVars_ref->{link2columns}
+        = $a_listemenuSplit[ scalar(@a_listemenuSplit) - 1 ]->{url};
+    $templateVars_ref->{titleOfPage}    = 'Tout';
+    $templateVars_ref->{listOfWebsites} = \@a_Asites;
+    $templateVars_ref->{listemenu}      = \@a_listemenu;
     sayError( $template->error() )
-      if (
+        if (
         !$template->process(
-            'modele.html', $rh_vars,
-            $documentRoot . $s_folder . 'tout.html'
+            'modele.html', $templateVars_ref,
+            $documentRoot . $mainFolder . 'tout.html'
         )
-      );
+        );
 
     # genere la page "split/tout.html"
-    $rh_vars->{listemenu}     = \@a_listemenuSplit;
-    $rh_vars->{link1column}   = $a_listemenu[ scalar(@a_listemenu) - 1 ]->{url};
-    $rh_vars->{leftWebsites}  = \@a_AleftWebsites;
-    $rh_vars->{rightWebsites} = \@a_ArightWebsites;
+    $templateVars_ref->{listemenu} = \@a_listemenuSplit;
+    $templateVars_ref->{link1column}
+        = $a_listemenu[ scalar(@a_listemenu) - 1 ]->{url};
+    $templateVars_ref->{leftWebsites}  = \@a_AleftWebsites;
+    $templateVars_ref->{rightWebsites} = \@a_ArightWebsites;
     sayError( $template->error() )
-      if (
+        if (
         !$template->process(
-            'modele-split.html', $rh_vars,
-            $documentRoot . $s_foldersplit . 'tout.html'
+            'modele-split.html', $templateVars_ref,
+            $documentRoot . $splitFolder . 'tout.html'
         )
-      );
+        );
 }
 
 ## @method readRSSFromWeb()
 # @brief read feed from the Website
+# @param $rssUrl URL of the RSS (ie. http://www.linux.com/feature/?theme=rss)
+# @param $rssFilename Full pathname of file where store the RSS
+# @param $s_encoding
 sub readRSSFromWeb {
-    my ( $o_rssParser, $s_rss, $s_fichier, $s_encoding ) = @_;
-    sayMessage("- get  $s_rss");
-    my $request = new HTTP::Request( 'GET' => $s_rss );
-    $request->header( 'Accept' => 'text/html' );
-    my $o_res = $userAgent->request($request);
-    if ( !$o_res->is_success() ) {
-        sayError( '(!) [' 
-              . $s_rss . '] '
-              . $o_res->code() . ' '
-              . $o_res->message() );
+    my ( $rssUrl, $rssFilename, $encoding ) = @_;
+    sayMessage("readRSSFromWeb() HTTP::Request( 'GET' => '$rssUrl' )");
+    my $request = new HTTP::Request( 'GET' => $rssUrl );
+    $request->header( 'Accept' =>
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    );
+    my $result = $userAgent->request($request);
+    if ( !$result->is_success() ) {
+        sayError( 'readRSSFromWeb() '
+                . 'LWP::UserAgent::request() failed!'
+                . 'URL = '
+                . $rssUrl
+                . '; code = '
+                . $result->code()
+                . '; message = '
+                . $result->message() );
         return;
     }
-    my $s_code    = '';
-    my $s_contenu = $o_res->content();
-    if ( defined($s_encoding) ) {
-        $s_contenu =~
-s/<\?xml version="1\.0".*?>/<?xml version="1.0" encoding="$s_encoding"?>/;
+    my $code    = '';
+    my $content = $result->content();
+    if ( defined($encoding) ) {
+        $content
+            =~ s/<\?xml version="1\.0".*?>/<?xml version="1.0" encoding="$encoding"?>/;
     }
     else {
-        $s_contenu =~ s/encoding="(iso-8859-15)"/encoding="iso-8859-1"/g;
+        $content =~ s/encoding="(iso-8859-15)"/encoding="iso-8859-1"/g;
         if ( defined($1) ) {
-            $s_code = $1;
+            $code = $1;
         }
         else {
-            $s_contenu =~ /encoding="([^"]+)"/;
-            $s_code = $1 if ( defined($1) );
+            $content =~ /encoding="([^"]+)"/;
+            $code = $1 if defined($1);
         }
 
     }
-    sayMessage("> encodage: $s_code");
-    undef($s_erreur_warn);
-    eval { $o_rssParser->parse($s_contenu); };
+    sayMessage("readRSSFromWeb() file encoding = '$code'");
+    undef($warnError);
+    my $rssParser = new XML::RSS();
+    if ( !defined($rssParser) ) {
+        sayError('(!) readRSSFromWeb(): new XML::RSS() failed');
+    }
+    eval { $rssParser->parse($content); };
     if ($@) {
-        sayError("Parsing error: $@");
+        sayError("readRSSFromWeb(): XML::RSS::parse() die: $@");
         return;
     }
-    if ($s_erreur_warn) {
-        sayError($s_erreur_warn);
+    if ($warnError) {
+        sayError($warnError);
     }
-    sayMessage("- write $s_fichier");
-    if ( open( FICHIER, '>' . $s_fichier ) ) {
-        print FICHIER $s_contenu;
-        close(FICHIER);
+    sayMessage("readRSSFromWeb() write the '$rssFilename' file");
+    my $fh;
+    if ( open( $fh, '>' . $rssFilename ) ) {
+        print $fh $content;
+        close($fh);
     }
     else {
-        sayError($!);
+        sayError("readRSSFromWeb() open($rssFilename) return: $!");
     }
-    return readRSSS($o_rssParser);
+    return readRSSS($rssParser);
 }
 
-##@method readRSSFromFile()
+## @method readRSSFromFile()
+## @brief
+# @param $filename
 sub readRSSFromFile {
-    my ( $o_rssParser, $s_fichier ) = @_;
-    sayMessage("- read file: $s_fichier");
-    if ( !-e $s_fichier ) {
-        sayError("$s_fichier est inexistant");
+    my ($filename) = @_;
+    sayMessage("readRSSFromFile() tries to read '$filename' file");
+    if ( !-e $filename ) {
+        sayError("'readRSSFromFile() $filename' file not found!");
         return;
     }
-    eval { $o_rssParser->parsefile($s_fichier); };
+    my $rssParser = new XML::RSS();
+    if ( !defined($rssParser) ) {
+        sayError('readRSSFromFile() new XML::RSS() failed!');
+    }
+    eval { $rssParser->parsefile($filename); };
     if ($@) {
-        sayError("Parsing error: $@");
+        sayError("readRSSFromFile() Parsing error: $@");
         return;
     }
-
-    #print Dumper($o_rssParser);
-    return readRSSS($o_rssParser);
+    return readRSSS($rssParser);
 }
 
 ## @method array = readRSSS(object)
@@ -441,8 +455,7 @@ sub readRSSS {
         $title =~ s/(\n|\r)//g;
         push(
             @items,
-            {
-                'title' => $title,
+            {   'title' => $title,
                 'url'   => $url
             }
         );
@@ -456,20 +469,43 @@ sub readRSSS {
 # return string date of the day (YYYYY-MM-DD)
 sub getDate {
     my @a_tmp = localtime(time);
-    my $s_datetime =
-        ( $a_tmp[5] + 1900 ) . '-'
-      . sprintf( "%02d", $a_tmp[4] + 1 ) . '-'
-      . sprintf( "%02d", $a_tmp[3] ) . 'T'
-      . sprintf( "%02d", $a_tmp[2] ) . ':'
-      . sprintf( "%02d", $a_tmp[1] ) . ':'
-      . sprintf( "%02d", $a_tmp[0] )
-      . '+01:00';
+    my $s_datetime
+        = ( $a_tmp[5] + 1900 ) . '-'
+        . sprintf( "%02d", $a_tmp[4] + 1 ) . '-'
+        . sprintf( "%02d", $a_tmp[3] ) . 'T'
+        . sprintf( "%02d", $a_tmp[2] ) . ':'
+        . sprintf( "%02d", $a_tmp[1] ) . ':'
+        . sprintf( "%02d", $a_tmp[0] )
+        . '+01:00';
 
-    my $s_date =
-        ( $a_tmp[5] + 1900 ) . '-'
-      . sprintf( "%02d", $a_tmp[4] + 1 ) . '-'
-      . sprintf( "%02d", $a_tmp[3] );
+    my $s_date
+        = ( $a_tmp[5] + 1900 ) . '-'
+        . sprintf( "%02d", $a_tmp[4] + 1 ) . '-'
+        . sprintf( "%02d", $a_tmp[3] );
     return ( $s_date, $s_datetime );
+}
+
+## @method void makeDirP($dirname, $mode)
+# @brief Create a directory
+sub makeDirP {
+    my ( $dirname, $mode ) = @_;
+    $mode = 0755 if !defined $mode;
+    my $pos = -1;
+    my $currentDir;
+    while ( ( $pos = index( $dirname, '/', $pos ) ) > -1 ) {
+        $currentDir = substr( $dirname, 0, $pos );
+        if ( ( !-d $currentDir ) and length($currentDir) ) {
+            die "makeDirP($currentDir) return: $!"
+                if !mkdir( $currentDir, $mode );
+        }
+        $pos++;
+    }
+
+    # cree le dernier repertoire
+    if ( !-d $dirname ) {
+        die "makeDirP($dirname) return: $!"
+            if !mkdir( $dirname, $mode );
+    }
 }
 
 ## @method sayMessage(@)
@@ -486,23 +522,27 @@ sub sayError {
     my $fh;
     return if !open( $fh, '>>', '/tmp/tootella.txt' );
     my @a_tmp = localtime(time);
-    my $s_datetime =
-        ( $a_tmp[5] + 1900 ) . '-'
-      . sprintf( "%02d", $a_tmp[4] + 1 ) . '-'
-      . sprintf( "%02d", $a_tmp[3] ) . 'T'
-      . sprintf( "%02d", $a_tmp[2] ) . ':'
-      . sprintf( "%02d", $a_tmp[1] ) . ':'
-      . sprintf( "%02d", $a_tmp[0] )
-      . '+01:00';
-    print $fh "$s_datetime\n";
+    my $datetime
+        = ( $a_tmp[5] + 1900 ) . '-'
+        . sprintf( "%02d", $a_tmp[4] + 1 ) . '-'
+        . sprintf( "%02d", $a_tmp[3] ) . 'T'
+        . sprintf( "%02d", $a_tmp[2] ) . ':'
+        . sprintf( "%02d", $a_tmp[1] ) . ':'
+        . sprintf( "%02d", $a_tmp[0] )
+        . '+01:00';
+    print $fh "$datetime\n";
     print $fh "$_" foreach (@_);
     print $fh "\n";
     close $fh;
-    return if ( !defined($isVerbose) );
-    print STDERR "$_" foreach (@_);
+    return if !defined($isVerbose);
+
+    foreach (@_) {
+        print STDERR colored( $_, 'red' );
+    }
     print "\n";
 }
 
+## @method init()
 sub init {
     readArgs();
     readConfig();
@@ -511,13 +551,14 @@ sub init {
     readSections();
 }
 
+## @method writeProcessID()
 sub writeProcessID {
     if (   !( $pid_handle = new IO::File( '+>' . $pidfile ) )
         || !flock( $pid_handle, LOCK_EX | LOCK_NB ) )
 
     {
         die "Cannot open or lock pidfile '$pidfile'."
-          . "another tooelle.pl running? error: $!";
+            . "another tooelle.pl running? error: $!";
     }
 
     if (   !$pid_handle->seek( 0, 0 )
@@ -529,15 +570,16 @@ sub writeProcessID {
     }
 }
 
-
 sub isString {
-    my ($hash_ref, $name) = @_;
-    if (!exists $hash_ref->{$name}
-        or ref($hash_ref->{$name})
-        or $hash_ref->{$name} !~m{^.+$}) {
+    my ( $hash_ref, $name ) = @_;
+    if (   !exists $hash_ref->{$name}
+        or ref( $hash_ref->{$name} )
+        or $hash_ref->{$name} !~ m{^.+$} )
+    {
         return 0;
-    } else {
-       return 1;
+    }
+    else {
+        return 1;
     }
 }
 
@@ -553,22 +595,33 @@ sub readConfig {
         die "readConfig() 'pid' section not found"
             if !exists $config{'pid'};
         die "readConfig() 'pid/filename' not found or wrong"
-            if !exists $config{'pid'};
+            if !isString( $config{'pid'}, 'filename' );
         $pidfile = $config{'pid'}->{'filename'}
-          if exists $config{'pid'}->{'filename'};
+            if exists $config{'pid'}->{'filename'};
+        die "readConfig() 'web' section not found"
+            if !exists $config{'web'};
+        my $web_ref = $config{'web'};
+        die "readConfig() 'web/documentRoot' not found or wrong"
+            if !isString( $web_ref, 'documentRoot' );
+        $documentRoot = $web_ref->{'documentRoot'};
+        die "readConfig() 'web/folder' not found or wrong"
+            if !isString( $web_ref, 'folder' );
+        $mainFolder = $web_ref->{'folder'};
+        die "readConfig() 'web/split' not found or wrong"
+            if !isString( $web_ref, 'split' );
+        $splitFolder = $web_ref->{'split'};
+
         $confFound = 1;
     }
     die "(!) readConfig(): no configuration file has been found!"
-      if !$confFound;
+        if !$confFound;
 }
 
 ## @method void BEGIN()
 sub BEGIN {
     $SIG{'__WARN__'} = sub {
-        $s_erreur_warn = $_[0];
-        $s_erreur_warn =~ s/\n//g;
+        $warnError = $_[0];
+        $warnError =~ s/\n//g;
     };
 }
-
-
 
