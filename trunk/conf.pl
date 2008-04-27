@@ -24,9 +24,9 @@
                 {   titre => 'Labo-Linux - News',
                     url   => 'http://www.labo-linux.org',
                     rss =>
-                        'http://www.labo-linux.org/rss/news.php?type=news&amp;nombre=30',
+                        'http://www.labo-linux.org/news/sdotnews-rss.xml',
                     lang     => 'fr',
-                    encoding => 'iso-8859-1'
+                    encoding => 'utf-8'
                 },
                 {   titre => 'Lolix',
                     url   => 'http://www.lolix.org/',
@@ -261,8 +261,7 @@
                 },
                 {   titre => 'Application Servers',
                     url   => 'http://www.application-servers.com/',
-                    rss =>
-                        'http://www.application-servers.com/rss/appservers.rss',
+                    rss => 'http://www.application-servers.com/feed/rss2', 
                     lang => 'fr'
                 },
                 {   titre => 'Java Channel',
@@ -293,11 +292,6 @@
                         'http://www.oreillynet.com/meerkat/?_fl=rss10&t=ALL&c=5136',
                     lang => 'en'
                 },
-                {   titre => 'Latest RFCs',
-                    url   => 'http://rfc.x42.com/',
-                    rss   => 'http://x42.com/rss/rfc.rss',
-                    lang  => 'en'
-                },
                 {   titre => 'PHPBuilder',
                     url   => 'http://www.phpbuilder.com/',
                     rss =>
@@ -311,21 +305,20 @@
             sites => [
                 {   titre => 'Je suis libre',
                     url   => 'http://www.jesuislibre.org/',
-                    rss   => '',
+                    rss   => 'http://feeds.feedburner.com/jesuislibre',
                     lang  => 'fr'
                 },
                 {   titre => 'Freshmeat',
                     url   => 'http://freshmeat.net/',
-                    rss =>
-                        'http://images.feedstermedia.com/feedcache/ostg/freshmeat/fm-releases-global.xml',
+                    rss => 'http://feeds.pheedo.com/freshmeatnet_announcements_global',
                     lang => 'en'
                 },
-                {   titre => 'Linux Games',
-                    url   => 'http://www.linuxgames.com/',
-                    rss   => 'http://www.linuxgames.com/news/linuxgames.rss',
+                {   titre => 'The Linux Game Tome',
+                    url   => 'http://www.happypenguin.org/',
+                    rss   => 'http://happypenguin.org/html/news.rdf',
                     lang  => 'en'
                 },
-                {   titre => 'IceWalkers',
+               {   titre => 'IceWalkers',
                     url   => 'http://www.icewalkers.com/',
                     rss => 'http://www.icewalkers.com/backend/icewalkers.rss',
                     lang => 'en'
@@ -390,11 +383,6 @@
                 {   titre => 'Wlanfr',
                     url   => 'http://www.wlanfr.net/',
                     rss   => 'http://www.wlanfr.net/backend.rss',
-                    lang  => 'fr'
-                },
-                {   titre => 'La Paix Maintenant',
-                    url   => 'http://www.lapaixmaintenant.org/',
-                    rss   => '',
                     lang  => 'fr'
                 },
                 {   titre => 'Kuro5hin',
