@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # @author Bruno Ethvignot <bruno at tlk.biz>
 # @created 2005-05-03
-# @date 2008-05-27
+# @date 2008-05-28
 #
 # copyright (c) 2008 TLK Games all rights reserved
 # $Id$
@@ -579,11 +579,10 @@ sub isString {
 # @brief Read configuration file
 sub readConfig {
     my $confFound = 0;
-    foreach my $pathname ( '.', '/etc', $ENV{'HOME'} . '/.tootella-like' ) {
+    foreach my $pathname ( $Bin, '/etc', $ENV{'HOME'} . '/.tootella-like' ) {
         my $filename = $pathname . '/' . $configFileName;
         next if !-e $filename;
         my %config = Config::General->new($filename)->getall();
-        print Dumper \%config;
         die "readConfig() 'pid' section not found"
             if !exists $config{'pid'};
         die "readConfig() 'pid/filename' not found or wrong"
