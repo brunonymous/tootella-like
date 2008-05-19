@@ -10,6 +10,11 @@
                     rss   => 'http://linuxfr.org/backend/news/rss20.rss',
                     lang  => 'fr'
                 },
+                 {  titre => 'Framablog',
+                    url   => 'http://www.framablog.org/',
+                    rss   => 'http://www.framablog.org/index.php/feed/rss2',
+                    lang  => 'fr'
+                },
                 {   titre => 'Toolinux',
                     url   => 'http://www.toolinux.com/',
                     rss   => 'http://www.toolinux.com/backend.php3',
