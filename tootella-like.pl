@@ -1,17 +1,17 @@
 #!/usr/bin/perl
 # @author Bruno Ethvignot <bruno at tlk.biz>
 # @created 2005-05-03
-# @date 2008-05-28
+# @date 2009-01-16
 #
 # copyright (c) 2008 TLK Games all rights reserved
 # $Id$
 #
-# imap2signal-spam is free software; you can redistribute it and/or modify
+# Tootella-like is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
-# tootella-like is distributed in the hope that it will be useful, but
+# Tootella-like is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.

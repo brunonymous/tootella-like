@@ -25,6 +25,11 @@
                     rss   => 'http://linuxfr.org/backend/journaux/rss20.rss',
                     lang  => 'fr'
                 },
+                {   titre => 'Planet Ubuntu Francophone',
+                    url   => 'http://planet.ubuntu-fr.org/',
+                    rss   => 'http://planet.ubuntu-fr.org/feed/rss2',
+                    lang  => 'fr'
+                },
 
                 {   titre => 'Labo-Linux - News',
                     url   => 'http://www.labo-linux.org',
