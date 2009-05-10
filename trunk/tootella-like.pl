@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 # @author Bruno Ethvignot <bruno at tlk.biz>
 # @created 2005-05-03
-# @date 2009-01-16
+# @date 2009-05-01
 #
-# copyright (c) 2008 TLK Games all rights reserved
+# copyright (c) 2008-2009 TLK Games all rights reserved
 # $Id$
 #
 # Tootella-like is free software; you can redistribute it and/or modify
@@ -102,12 +102,13 @@ sub run {
     my %h_website2items = ();    #evite de traiter 2 fois le meme fil
     my %h_website2error = ();
 
-    #liste des sites pour les 2 pages "tout.html"
+    #list of sites for the two "tout.html" pages
     my @a_Asites         = ();                  #1 column : websites list
     my @a_AleftWebsites  = ();                  #2 columns : websites at left
     my @a_ArightWebsites = ();                  #2 columns : websites at right
     my $ra_AsplitSites   = \@a_AleftWebsites;
-    my %h_pageToutFlags = ();    #evite d'avoir 2 fois le meme site
+    # avoids having 2 times the websame site
+    my %h_pageToutFlags = (); 
 
     # page counter from 1 to n (n = 9 currently)
     my $pageCounter = 0;

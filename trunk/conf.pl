@@ -49,14 +49,9 @@
                     lang     => 'fr',
                     encoding => 'utf-8'
                 },
-                {   titre => 'Linux French',
-                    url   => 'http://www.linuxfrench.net/',
-                    rss   => 'http://www.linuxfrench.net/backend.php3',
-                    lang  => 'fr'
-                },
                 {   titre => 'Lea',
                     url   => 'http://www.lea-linux.org/',
-                    rss   => 'http://www.lea-linux.org/_src/rss.php?max=10',
+                    rss   => 'http://www.lea-linux.org/?feed=rss2',
                     lang  => 'fr'
                 },
                 {   titre => 'Linux Graphic',
@@ -374,9 +369,9 @@
                     rss   => 'http://ljouanneau.com/dotclear/rss.php',
                     lang  => 'fr'
                 },
-                {   titre => 'Carnet Web de Pascal',
-                    url   => 'http://www.chevrel.org/fr/carnet/',
-                    rss   => 'http://www.chevrel.org/fr/carnet/rss.php',
+                {   titre => 'Blogzinet',
+                    url   => 'http://blogzinet.free.fr/',
+                    rss   => 'http://blogzinet.free.fr/rss.php',
                     lang  => 'fr'
                 }
 
